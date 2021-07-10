@@ -1,79 +1,6 @@
-const noteList = document.querySelector('#notes-list')
-
-//Creates a luxon function that returns the date
-const DateTime = luxon.DateTime;
-const dateNow = () => DateTime.local()
-
-//Fetch existing data from local storage
-const getSavedDataFrom = (KeyName) => {
-    const dataJSON = localStorage.getItem(`${KeyName}`)
-    try {
-        return dataJSON ? JSON.parse(dataJSON) : []
-    } catch (error) {
-        return []
-    }
-}
-// Save data to localstorage
-const saveDataIn = function (KeyName, data) {
-    localStorage.setItem(`${KeyName}`, JSON.stringify(data))
-}
-
-//Renders the notelist to the DOM
-const renderNotes = (list, filters) => {
-    //Filters the array by the "hide completed" filter and checks if the element contains the word we are looking for
-    const sortedList = sortListBy(list, filters.sortBy)
-    const filteredList = sortedList.filter((value) => {
-        return filters.hideCompleted && value.completed ? false : value.title.toLowerCase().includes(filters.filterByTitle.toLowerCase())
-    })
-    //Clears the List div so that there won't be duplicate data
-    noteList.innerHTML = ''
-    //Generate all of the list elements and shows them on screen
-    filteredList.forEach((value) => {
-        const note = generateNotes(value)
-        noteList.appendChild(note)
-    })
-}
-
-//Sorts the list by the selected filter and returns a new list
-const sortListBy = (list, filter) => {
-    if (filter === 'byEdited') {
-        return list.sort((a, b) => {
-            const firstElement = DateTime.fromISO(a.updatedAt).valueOf()
-            const secondElement = DateTime.fromISO(b.updatedAt).valueOf()
-            if (firstElement > secondElement) {
-                return -1
-            } else if (firstElement < secondElement) {
-                return 1
-            } else {
-                return 0
-            }
-        })
-    } else if (filter === 'byCreated') {
-        return list.sort((a, b) => {
-            const firstElement = DateTime.fromISO(a.createdAt).valueOf()
-            const secondElement = DateTime.fromISO(b.createdAt).valueOf()
-            if (firstElement > secondElement) {
-                return -1
-            } else if (firstElement < secondElement) {
-                return 1
-            } else {
-                return 0
-            }
-        })
-    } else if (filter === 'alphabetical') {
-        return list.sort((a, b) => {
-            const firstElement = a.title.toLowerCase()
-            const secondElement = b.title.toLowerCase()
-            if (firstElement > secondElement) {
-                return 1
-            } else if (firstElement < secondElement) {
-                return -1
-            } else {
-                return 0
-            }
-        })
-    }
-}
+import { removeNote, updateNote, sortNotes } from "./note"
+import { DateTime } from "luxon"
+import { getFilters } from "./filters"
 
 //Returns a P element with the name of a note element on a list
 const generateNotes = (value) => {
@@ -91,16 +18,17 @@ const generateNotes = (value) => {
     //note edit inputs
     const editNoteText = document.createElement('textarea')
     const editNoteTitle = document.createElement('input')
+
     //note edit buttons
     const editButtonsWrapper = document.createElement('div')
     const aceptBtn = document.createElement('button')
     const cancelBtn = document.createElement('button')
 
     //Set option Icons
-    const editIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-gray-500 hover:text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+    const editIcon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
     <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
   </svg>`
-    const icon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+    const icon = `<svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-500 hover:text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
   </svg>`
 
@@ -110,7 +38,8 @@ const generateNotes = (value) => {
     const topClass = ['flex', 'items-start', 'justify-between']
     const noteBodyClass = ['text-gray-700', 'mt-4']
     const lastEditedClass = ['text-sm', 'italic', 'text-gray-400']
-    const cursor = ['cursor-pointer', 'hover:bg-gray-100', 'rounded-full', 'p-1']
+    const cursorEdit = ['cursor-pointer', 'hover:bg-gray-100', 'rounded-full', 'p-1', 'text-gray-500', 'hover:text-blue-500']
+    const cursorRemove = ['cursor-pointer', 'hover:bg-gray-100', 'rounded-full', 'p-1', 'text-gray-500', 'hover:text-red-500']
     const title = ['text-gray-800', 'text-2xl', 'font-semibold', 'hover:text-indigo-500', 'cursor-pointer']
     const noteTextClass = ['bg-gray-50', 'p-2', 'rounded', 'text-gray-600']
 
@@ -175,8 +104,8 @@ const generateNotes = (value) => {
     optionsContainer.classList.add(...optionsContainerClass)
     noteBody.classList.add(...noteBodyClass)
     noteTitle.classList.add(...title)
-    removeButton.classList.add(...cursor)
-    editButton.classList.add(...cursor)
+    removeButton.classList.add(...cursorRemove)
+    editButton.classList.add(...cursorEdit)
     topContainer.classList.add(...topClass)
     lastEdited.classList.add(...lastEditedClass)
     noteText.classList.add(...noteTextClass)
@@ -220,16 +149,13 @@ const generateNotes = (value) => {
     //Setup remove button
     removeButton.innerHTML = icon
     editButton.innerHTML = editIcon
+
     removeButton.addEventListener('click', () => {
-        removeNoteElement(value.id)
-        saveDataIn('notes', notes)
-        renderNotes(notes, filters)
+        removeNote(value.id)
+        renderNotes()
     })
 
-    let editState = false
-
     noteTitle.addEventListener('click', () => editNote({
-        editState,
         value,
         noteTitle,
         optionsContainer,
@@ -243,7 +169,6 @@ const generateNotes = (value) => {
 
     //Setup edit button
     editButton.addEventListener('click', () => editNote({
-        editState,
         value,
         noteTitle,
         optionsContainer,
@@ -258,15 +183,24 @@ const generateNotes = (value) => {
     //Acept edit button function
     aceptBtn.addEventListener('click', (e) => {
         e.preventDefault()
-        value.title = editNoteTitle.value
-        value.body = editNoteText.value
-        value.updatedAt = dateNow()
+        updateNote(value.id,{
+            title: editNoteTitle.value,
+            body: editNoteText.value
+        })
         lastEdited.innerHTML = lastUpdated(value)
-        renderNotes(notes, filters)
-        saveDataIn('notes', notes)
+        renderNotes()
     })
 
-    cancelBtn.addEventListener('click', () => cancelEdit({ noteTitle, optionsContainer, noteText, topContainer, noteBody, editNoteTitle, editNoteText, editButtonsWrapper, editState }))
+    cancelBtn.addEventListener('click', () => cancelEdit({ 
+        noteTitle, 
+        optionsContainer, 
+        noteText,
+        topContainer, 
+        noteBody, 
+        editNoteTitle, 
+        editNoteText,
+        editButtonsWrapper, 
+    }))
 
     // container.appendChild(noteTitle)
     container.appendChild(topContainer)
@@ -274,6 +208,49 @@ const generateNotes = (value) => {
     container.appendChild(noteBody)
 
     return container
+}
+
+//Renders the notelist to the DOM
+const renderNotes = () => {
+    //Filters the array by the "hide completed" filter and checks if the element contains the word we are looking for
+    const noteList = document.querySelector('#notes-list')
+    const filters = getFilters()
+    const notes = sortNotes(filters.sortBy)
+    const filteredNotes = notes.filter((value) => {
+    return filters.hideCompleted && value.completed ? false : value.title.toLowerCase().includes(filters.filterByTitle.toLowerCase())
+    })
+    //Clears the List div so that there won't be duplicate data
+    noteList.innerHTML = ''
+    //Generate all of the list elements and shows them on screen
+    if(filteredNotes.length > 0){
+        filteredNotes.forEach((value) => {
+            const note = generateNotes(value)
+            noteList.appendChild(note)
+        })
+    } else {
+        const emptyMessage = document.createElement('p')
+        emptyMessage.textContent = 'No notes to show :('
+        emptyMessage.classList.add('text-3xl', 'font-semibold', 'text-gray-500')
+        noteList.appendChild(emptyMessage)
+    }
+}
+
+//Function to know when the note was last updated
+const lastUpdated = (element) => {
+    let now = DateTime.local()
+    let lastUpdated = DateTime.fromISO(element.updatedAt)
+    let diff = now.diff(lastUpdated, ['months', 'days', 'hours', 'minutes', 'seconds']).toObject()
+    if (diff.months > 0) {
+        return `last updated: ${diff.months} months - ${diff.days} days ago`
+    } else if (diff.days > 0) {
+        return `last updated: ${diff.days} days - ${diff.hours} hours ago`
+    } else if (diff.hours > 0) {
+        return `last updated ${diff.hours} hours ago`
+    } else if (diff.minutes > 0) {
+        return `last updated ${diff.minutes} minutes ago`
+    } else {
+        return `last updated just now`
+    }
 }
 
 const cancelEdit = ({ noteTitle, optionsContainer, noteText, topContainer, noteBody, editNoteTitle, editNoteText, editButtonsWrapper }) => {
@@ -295,29 +272,6 @@ const editNote = ({ noteTitle, optionsContainer, noteText, topContainer, noteBod
     noteBody.append(editNoteText)
     //Add the edit buttons
     noteBody.append(editButtonsWrapper)
-    editState = true
-}
-//Function that removes a Note element when clicked on it's button
-const removeNoteElement = (id) => {
-    let index = notes.findIndex((value) => value.id === id)
-    index !== -1 ? notes.splice(index, 1) : console.log('Error (no se pudo encontrar el id de este elemento)')
 }
 
-//Function to know when the note was last updated
-
-const lastUpdated = (element) => {
-    let now = DateTime.local()
-    let lastUpdated = DateTime.fromISO(element.updatedAt)
-    let diff = now.diff(lastUpdated, ['months', 'days', 'hours', 'minutes', 'seconds']).toObject()
-    if (diff.months > 0) {
-        return `last updated: ${diff.months} months - ${diff.days} days ago`
-    } else if (diff.days > 0) {
-        return `last updated: ${diff.days} days - ${diff.hours} hours ago`
-    } else if (diff.hours > 0) {
-        return `last updated ${diff.hours} hours ago`
-    } else if (diff.minutes > 0) {
-        return `last updated ${diff.minutes} minutes ago`
-    } else {
-        return `last updated just now`
-    }
-}
+export {generateNotes, renderNotes, lastUpdated}

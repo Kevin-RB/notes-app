@@ -27,22 +27,6 @@ document.querySelector('#cancel-btn').addEventListener('click', () => {
     toggleModal()
 })
 
-
-// document.querySelector('#add-note').addEventListener('click', () => {
-//     // const id = uuidv4()
-//     // const dateOfCreation = dateNow()
-//     // notes.push({
-//     //     id: id,
-//     //     title: '',
-//     //     body: '',
-//     //     createdAt: dateOfCreation,
-//     //     updatedAt: dateOfCreation
-//     // })
-//     // saveDataIn('notes', notes)
-//     // location.assign(`./edit.html#${id}`)
-//     toggleModal()
-// })
-
 const newNoteTitle = document.querySelector('#new-note-title')
 const newNoteBody = document.querySelector('#new-note-body')
 
@@ -64,7 +48,6 @@ document.querySelector('#create-btn').addEventListener('click', () => {
     })
     saveDataIn('notes', notes)
     renderNotes(notes, filters)
-    // location.assign(`./index.html`)
     toggleModal()
 })
 
@@ -73,9 +56,9 @@ document.querySelector('#filter-by').addEventListener('change', (e) => {
     renderNotes(notes, filters)
 })
 
-window.addEventListener('storage', (e) => {
-    if (e.key === 'notes') {
-        const newData = JSON.parse(e.newValue)
-        renderNotes(newData, filters)
-    }
-})
+// window.addEventListener('storage', (e) => {
+//     if (e.key === 'notes') {
+//         const newData = JSON.parse(e.newValue)
+//         renderNotes(newData, filters)
+//     }
+// })
