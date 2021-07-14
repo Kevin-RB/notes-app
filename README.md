@@ -5,7 +5,7 @@ This web application was created as a personal project to practice and demonstra
 https://kevin-note-app.netlify.app/
 
 ## About
- - The application was built using JavaScript, Tailwind, Babel and Webpack.
+ - This application was built using JavaScript, Tailwind, Babel and Webpack.
  - Responsive implemented thanks to the TailwindCss utility classes
 
   Dependencies:
