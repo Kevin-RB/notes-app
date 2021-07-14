@@ -1,10 +1,12 @@
 # Notes-app
 This web application was created as a personal project to practice and demonstrate my web development skills in addition to adding a new project to my portfolio. This aplication allows users to create, read, update and save notes which can be sorted by a different array of parameters, the notes will remain stored in the user's local storage for future their use 
 
+##Available at
+https://kevin-note-app.netlify.app/
+
 ## About
  - The application was built using JavaScript, Tailwind, Babel and Webpack.
  - Responsive implemented thanks to the TailwindCss utility classes
- - Demo available at : https://kevin-note-app.netlify.app/
 
   Dependencies:
   
